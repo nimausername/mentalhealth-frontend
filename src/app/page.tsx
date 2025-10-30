@@ -11,12 +11,16 @@ import { useRouter } from 'next/navigation'
 
 export default function Home() {
   const [quote, setQuote] = useState<any>(null)
+  const [allQuotes, setAllQuotes] = useState<any[]>([])
+  const [shownQuoteIds, setShownQuoteIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
     fetchTodayQuote()
+    // Preload all quotes for fast local random selection
+    fetchAllQuotes()
   }, [])
 
   const fetchTodayQuote = async () => {
@@ -56,6 +60,42 @@ export default function Home() {
     }
   }
 
+  const fetchAllQuotes = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001'}/api/quotes/all`)
+      if (!response.ok) return
+      const data = await response.json()
+      const list = Array.isArray(data.data) ? data.data : []
+      setAllQuotes(list)
+    } catch (e) {
+      // silent fallback; random API endpoint will still work
+    }
+  }
+
+  const handleRandomFromAll = () => {
+    if (!allQuotes || allQuotes.length === 0) {
+      // Fallback to API-based random if preload failed
+      void fetchNewQuote()
+      return
+    }
+
+    const remaining = allQuotes.filter((q: any) => q && q._id && !shownQuoteIds.has(q._id))
+    const pool = remaining.length > 0 ? remaining : allQuotes
+
+    if (remaining.length === 0) {
+      // reset cycle after showing all
+      setShownQuoteIds(new Set())
+    }
+
+    const next = pool[Math.floor(Math.random() * pool.length)]
+    if (next) {
+      setQuote(next)
+      if (next._id) {
+        setShownQuoteIds(prev => new Set(prev).add(next._id))
+      }
+    }
+  }
+
   return (
     <div className="min-h-screen bg-black flex flex-col">
       {loading ? (
@@ -73,7 +113,7 @@ export default function Home() {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col min-h-screen justify-between items-center px-4 sm:px-6 py-8 sm:py-12 pb-20 relative">
+        <div className="flex flex-col min-h-screen justify-between items-center px-4 sm:px-6 py-8 sm:py-12 relative">
           {/* Date and time display */}
           <div className="w-full max-w-4xl px-4 mb-4 sm:mb-6">
             <DateTimeDisplay />
@@ -114,7 +154,7 @@ export default function Home() {
                 </button>
                 
                 <button
-                  onClick={fetchNewQuote}
+                  onClick={handleRandomFromAll}
                   className="px-4 py-3 border border-gray-700 rounded-full text-xs uppercase tracking-widest transition-all duration-300 hover:border-gray-500 hover:text-gray-300 min-h-[44px] w-full sm:w-auto"
                   style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
                 >
@@ -131,8 +171,7 @@ export default function Home() {
           {/* Spotify Player */}
           <SpotifyPlayer />
           
-          {/* Copyright Footer */}
-          <CopyrightFooter />
+          {/* Footer now rendered globally in layout */}
         </div>
       )}
     </div>

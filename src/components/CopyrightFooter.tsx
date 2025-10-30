@@ -4,12 +4,12 @@ import Link from 'next/link'
 
 export default function CopyrightFooter() {
   return (
-    <footer className="fixed bottom-0 left-0 right-0 z-40 py-3 pb-4 text-center">
+    <footer role="contentinfo" className="w-full border-t border-gray-800 bg-black px-4">
       <Link
         href="/copyright"
-        className="text-xs text-gray-500 hover:text-gray-400 transition-colors"
+        className="flex items-center justify-center min-h-[44px] py-3 text-[11px] sm:text-xs leading-none text-gray-500 hover:text-gray-300 transition-colors"
       >
-        © Credits & License
+        © {new Date().getFullYear()} Mental Health Quotes | Credits & License
       </Link>
     </footer>
   )
